@@ -1,98 +1,110 @@
-import React, { useState, useEffect } from "react";
-import "./App.css";
+import React, { useState, useEffect } from 'react';
 
-function App() {
-  const [data, setData] = useState([]); // Stores employee data
-  const [currentPage, setCurrentPage] = useState(1); // Current active page
-  const rowsPerPage = 10; // Rows per page
+const Navigation = ({ activePage, rowsPerPage, totalRows, onPageChange }) => {
+  const totalPages = Math.ceil(totalRows / rowsPerPage);
 
-  useEffect(() => {
-    // Fetch data from API
-    const fetchData = async () => {
-      try {
-        const response = await fetch(
-          "https://geektrust.s3-ap-southeast-1.amazonaws.com/adminui-problem/members.json"
-        );
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        const result = await response.json();
-        setData(result);
-      } catch (error) {
-        alert("Failed to fetch data");
-      }
-    };
-    fetchData();
-  }, []);
-
-  // Calculate total pages
-  const totalPages = Math.ceil(data.length / rowsPerPage);
-
-  // Get rows for the current page
-  const currentRows = data.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
-
-  // Handle navigation
   const handleNext = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
+    if (activePage < totalPages) {
+      onPageChange(activePage + 1);
     }
   };
 
   const handlePrevious = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+    if (activePage > 1) {
+      onPageChange(activePage - 1);
     }
   };
 
   return (
-    <div className="App">
-      <h1>Employee Data</h1>
-      <table border="1" width="100%" style={{ borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Role</th>
-          </tr>
-        </thead>
-        <tbody>
-          {currentRows.map((employee) => (
-            <tr key={employee.id}>
-              <td>{employee.name}</td>
-              <td>{employee.email}</td>
-              <td>{employee.role}</td>
-            </tr>
-          ))}
-          {currentRows.length === 0 && (
-            <tr>
-              <td colSpan="3" style={{ textAlign: "center" }}>
-                No data available
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-      <div style={{ marginTop: "10px", display: "flex", justifyContent: "center" }}>
-        <button
-          onClick={handlePrevious}
-          disabled={currentPage === 1}
-          style={{ marginRight: "10px" }}
-        >
-          Previous
-        </button>
-        <button
-          onClick={handleNext}
-          disabled={currentPage === totalPages}
-        >
-          Next
-        </button>
-      </div>
-      <p style={{ textAlign: "center" }}>Page {currentPage} of {totalPages}</p>
+    <div>
+      <button onClick={handlePrevious} disabled={activePage === 1}>
+        Previous
+      </button>
+      <span style={{ margin: "0 10px" }}>Page {activePage}</span>
+      <button onClick={handleNext} disabled={activePage === totalPages}>
+        Next
+      </button>
     </div>
   );
-}
+};
 
-export default App;
+const EmployeeTable = ({ rows }) => {
+  return (
+    <table style={{ width: "100%", border: "1px solid black", borderCollapse: "collapse" }}>
+      <thead>
+        <tr>
+          <th style={{ border: "1px solid black", padding: "8px" }}>ID</th>
+          <th style={{ border: "1px solid black", padding: "8px" }}>Name</th>
+          <th style={{ border: "1px solid black", padding: "8px" }}>Email</th>
+          <th style={{ border: "1px solid black", padding: "8px" }}>Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(row => (
+          <tr key={row.id}>
+            <td style={{ border: "1px solid black", padding: "8px" }}>{row.id}</td>
+            <td style={{ border: "1px solid black", padding: "8px" }}>{row.name}</td>
+            <td style={{ border: "1px solid black", padding: "8px" }}>{row.email}</td>
+            <td style={{ border: "1px solid black", padding: "8px" }}>{row.role}</td>
+          </tr>
+        ))}
+        {rows.length === 0 && (
+          <tr>
+            <td colSpan="4" style={{ textAlign: "center", padding: "8px" }}>
+              No data available
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  );
+};
+
+const EmployeeApp = () => {
+  const [employees, setEmployees] = useState([]);
+  const [activePage, setActivePage] = useState(1);
+  const rowsPerPage = 10;
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch(
+          'https://geektrust.s3-ap-southeast-1.amazonaws.com/adminui-problem/members.json'
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch data");
+        }
+        const result = await response.json();
+        setEmployees(result);
+      } catch (error) {
+        alert("Failed to fetch data");
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Calculate rows for the current page
+  const lastRowIndex = activePage * rowsPerPage;
+  const firstRowIndex = lastRowIndex - rowsPerPage;
+  const currentRows = employees.slice(firstRowIndex, lastRowIndex);
+
+  const handlePageChange = (pageNumber) => {
+    setActivePage(pageNumber);
+  };
+
+  return (
+    <div>
+      <h1>Employee Data</h1>
+      <EmployeeTable rows={currentRows} />
+      <Navigation
+        activePage={activePage}
+        rowsPerPage={rowsPerPage}
+        totalRows={employees.length}
+        onPageChange={handlePageChange}
+      />
+    </div>
+  );
+};
+
+export default EmployeeApp;
